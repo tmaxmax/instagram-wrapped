@@ -16,6 +16,7 @@
         --font-serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
         --font-sans: Optima, Candara, "Noto Sans", source-sans-pro, sans-serif;
         --content-max-width: 65ch;
+        --message-padding: 3em;
       }
 
       *:not(dialog) {
@@ -47,12 +48,12 @@
       }
 
       html {
-        scroll-padding-top: 3.5em;
+        scroll-padding-top: 30vh;
       }
 
       header {
         max-width: var(--content-max-width);
-        padding: 0.5em 0 0.5em 5rem;
+        padding: 0.5em 0;
         margin: 0 auto;
         font-family: var(--font-sans);
         position: sticky;
@@ -94,17 +95,28 @@
 
       .messages li {
         width: 100%;
-        padding-left: 5rem;
         display: flex;
-        position: relative;
+        column-gap: 1em;
+        flex-wrap: wrap;
       }
 
-      .messages li.me {
-        flex-direction: row-reverse;
+      .message {
+        display: flex;
+        column-gap: 1em;
+        flex-grow: 1;
       }
 
-      .messages li:not(.me) + li.me,
-      .messages li.me + li:not(.me) {
+      .messages li.me > .message > :nth-child(2)  {
+        margin-left: auto;
+        padding-left: var(--message-padding);
+      }
+
+      .messages li:not(.me) > .message > :nth-child(2) {
+        padding-right: var(--message-padding);
+      }
+
+      li:not(.me) + li.me,
+      li.me + li:not(.me) {
         margin-top: 0.5em;
       }
 
@@ -118,31 +130,30 @@
         user-select: none;
       }
 
-      .sender {
-        margin-left: 0.5em;
+      .when {
+        position: relative;
       }
 
-      .when {
-        position: absolute;
-        left: 2.2ch;
+      .sender {
+        display: inline-block;
+        margin-left: auto;
       }
 
       .when:hover {
         text-decoration: underline;
       }
 
-      .messages p,
-      .messages details {
-        max-width: 25ch;
-        text-align: justify;
+      .message p,
+      .message details {
         overflow-wrap: anywhere;
+        text-align: justify;
       }
 
-      .messages details > summary {
+      .message details > summary {
         list-style: none;
       }
 
-      .messages summary::-webkit-details-marker {
+      .message summary::-webkit-details-marker {
         display: none;
       }
 
@@ -205,15 +216,33 @@
         font-family: var(--font-sans);
         text-decoration: none;
         font-weight: bold;
-        position: sticky;
-        top: 0;
         padding: 1em 0;
-        z-index: 1;
       }
 
       .date > a:hover {
         text-decoration: underline;
       }
+
+      @media screen and (min-width: 30em) {
+        :root {
+          --message-padding: 20%;
+        }
+
+        header {
+          padding: 0.5em 0 0.5em 5em;
+        }
+
+        .when {
+          margin-left: 1.25em;
+        }
+
+        .date > a {
+          position: sticky;
+          top: 0;
+          z-index: 1;
+        }
+      }
+
 
       a:has(+ :target) {
         font-weight: bold;
@@ -221,11 +250,11 @@
         text-decoration: underline;
       }
 
-      :target:has(li) li:first-child :not(.when) {
+      :target:has(li) li:first-child :not(:is(.when, .sender)) {
         font-weight: 900;
       }
 
-      :target:has(li) li:first-child .when {
+      :target:has(li) li:first-child :is(.when, .sender) {
         font-weight: bold;
       }
 
@@ -235,20 +264,24 @@
         left: -1em;
       }
 
-      :target:has(> .when) {
+      :target:has(> .message) {
         font-weight: 900;
       }
 
-      :target:has(> .when) .when::before {
+      :target:has(> .message) .when::before {
         content: "⏵";
         position: absolute;
         left: -1em;
       }
 
-      :target:has(> .when) .when {
+      :target:has(> .message) .when {
         color: whitesmoke;
         font-weight: bold;
         text-decoration: underline;
+      }
+
+      :target:has(> .message) .sender {
+        font-weight: bold;
       }
     </style>
   </head>
@@ -271,33 +304,35 @@
           <ol id="date-{{ $date }}" class="messages">
             {{- range . }}
             <li id="msg-{{ .Timestamp }}" class="{{ if .Me }}me{{ end }}">
-              <a class="when" href="#msg-{{ .Timestamp }}">{{ .Time }}</a>
-              {{- if .Share }} {{- if .Share.ShareText }}
-              <details>
-                <summary>
-                  {{- end }}
-                  {{ if .Share.Link }}<a class="share" href="{{ .Share.Link }}">{{ else }}<p>{{ end }}
-                    {{- if .Share.OriginalContentOwner }}Post by {{ .Share.OriginalContentOwner }}{{ else }}Link{{ end }}
-                  {{- if .Share.Link }}</a>{{ else }}</p>{{ end }}
-                  {{- if .Share.ShareText }}
-                </summary>
-                {{ .Share.ShareText }}
-              </details>
-              {{ end }} {{ else if .Audios }} {{- range .Audios }}
-              <audio controls src="/{{ .Src }}"></audio>
-              {{ end }} {{ else if .Photos }} {{- range .Photos }}
-              <label class="photo">
-                <input type="checkbox" />
-                <img src="/{{ .Src }}" alt="" />
-              </label>
-              {{ end }} {{ else if .Videos }} {{- range .Videos }}
-              <video controls src="/{{ .Src }}"></video>
-              {{ end }} {{- else if .Content }}
-              <p>{{ .Content }}</p>
-              {{- else }}
-              <p class="one-time">Sent one-time message.</p>
-              {{- end }} {{- if and (gt (len $.Participants) 2) (not .Me) }}<span class="sender">{{ .Sender }}</span>{{
-              end }}
+              <div class="message">
+                <a class="when" href="#msg-{{ .Timestamp }}">{{ .Time }}</a>
+                {{- if .Share }} {{- if .Share.ShareText }}
+                <details>
+                  <summary>
+                    {{- end }}
+                    {{ if .Share.Link }}<a class="share" href="{{ .Share.Link }}">{{ else }}<p>{{ end }}
+                      {{- if .Share.OriginalContentOwner }}Post by {{ .Share.OriginalContentOwner }}{{ else }}Link{{ end }}
+                    {{- if .Share.Link }}</a>{{ else }}</p>{{ end }}
+                    {{- if .Share.ShareText }}
+                  </summary>
+                  {{ .Share.ShareText }}
+                </details>
+                {{ end }} {{ else if .Audios }} {{- range .Audios }}
+                <audio controls src="/{{ .Src }}"></audio>
+                {{ end }} {{ else if .Photos }} {{- range .Photos }}
+                <label class="photo">
+                  <input type="checkbox" />
+                  <img src="/{{ .Src }}" alt="" />
+                </label>
+                {{ end }} {{ else if .Videos }} {{- range .Videos }}
+                <video controls src="/{{ .Src }}"></video>
+                {{ end }} {{- else if .Content }}
+                <p>{{ .Content }}</p>
+                {{- else }}
+                <p class="one-time">Sent one-time message.</p>
+                {{- end }} 
+              </div>
+              {{ if and (gt (len $.Participants) 2) (not .Me) }}<span class="sender">{{ .Sender }}</span>{{ end }}
             </li>
             {{- end }}
           </ol>
