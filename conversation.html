@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <title>{{ .Title }}</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      :root {
+        --font-serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
+        --font-sans: Optima, Candara, "Noto Sans", source-sans-pro, sans-serif;
+        --content-max-width: 65ch;
+      }
+
+      *:not(dialog) {
+        margin: 0;
+        padding: 0;
+      }
+
+      .messages {
+        list-style-type: none;
+      }
+
+      .content {
+        position: relative;
+      }
+
+      main {
+        max-width: var(--content-max-width);
+        margin: 0 auto;
+      }
+
+      body {
+        width: 100%;
+        padding: 1em 2em 2em 2em;
+        font-family: var(--font-serif);
+        font-weight: normal;
+        background-color: black;
+        color: whitesmoke;
+        min-height: 100%;
+      }
+
+      html {
+        scroll-padding-top: 3.5em;
+      }
+
+      header {
+        max-width: var(--content-max-width);
+        padding: 0.5em 0 0.5em 5rem;
+        margin: 0 auto;
+        font-family: var(--font-sans);
+        position: sticky;
+        top: 0;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.19) 85%, rgba(0, 0, 0, 0) 100%);
+        z-index: 1;
+      }
+
+      .messages li:not(:last-of-type) {
+        margin-bottom: 0.3em;
+      }
+
+      .home {
+        cursor: pointer;
+        text-decoration: none;
+      }
+
+      .participants {
+        display: flex;
+        column-gap: 0.5em;
+        flex-wrap: wrap;
+        list-style-type: none;
+      }
+
+      .participants li:not(:last-of-type)::after {
+        content: "•";
+        display: inline-block;
+        margin-left: 0.5em;
+      }
+
+      .messages {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .day {
+        display: contents;
+      }
+
+      .messages li {
+        width: 100%;
+        padding-left: 5rem;
+        display: flex;
+        position: relative;
+      }
+
+      .messages li.me {
+        flex-direction: row-reverse;
+      }
+
+      .messages li:not(.me) + li.me,
+      .messages li.me + li:not(.me) {
+        margin-top: 0.5em;
+      }
+
+      .sender,
+      .when {
+        font-size: 0.8em;
+        font-family: var(--font-sans);
+        color: gray;
+        margin-top: 0.31em;
+        text-decoration: none;
+        user-select: none;
+      }
+
+      .sender {
+        margin-left: 0.5em;
+      }
+
+      .when {
+        position: absolute;
+        left: 2.2ch;
+      }
+
+      .when:hover {
+        text-decoration: underline;
+      }
+
+      .messages p,
+      .messages details {
+        max-width: 25ch;
+        text-align: justify;
+        overflow-wrap: anywhere;
+      }
+
+      .messages details > summary {
+        list-style: none;
+      }
+
+      .messages summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .me > details summary {
+        text-align: right;
+      }
+
+      :not(.me) > details summary::after,
+      .me > details summary::before {
+        font-size: 0.8rem;
+        content: " ►";
+      }
+
+      :not(.me) > details[open] summary::after,
+      .me > details[open] summary::before {
+        content: " ▼";
+      }
+
+      .share {
+        text-decoration: none;
+        font-weight: bold;
+        color: whitesmoke;
+      }
+
+      .share:hover {
+        text-decoration: underline;
+      }
+
+      .one-time {
+        font-style: italic;
+      }
+
+      img {
+        max-height: 15em;
+        max-width: 100%;
+      }
+
+      .photo:has(:checked) img {
+        max-height: 100%;
+      }
+
+      .photo {
+        position: relative;
+        cursor: pointer;
+      }
+
+      .photo input {
+        position: absolute;
+        visibility: hidden;
+      }
+
+      video {
+        max-height: 30em;
+      }
+
+      .date > a {
+        display: inline-block;
+        color: gray;
+        font-size: 0.8em;
+        font-family: var(--font-sans);
+        text-decoration: none;
+        font-weight: bold;
+        position: sticky;
+        top: 0;
+        padding: 1em 0;
+        z-index: 1;
+      }
+
+      .date > a:hover {
+        text-decoration: underline;
+      }
+
+      a:has(+ :target) {
+        font-weight: bold;
+        color: whitesmoke;
+        text-decoration: underline;
+      }
+
+      :target:has(li) li:first-child :not(.when) {
+        font-weight: 900;
+      }
+
+      :target:has(li) li:first-child .when {
+        font-weight: bold;
+      }
+
+      :target:has(li) li:first-child .when::before {
+        content: "⏷";
+        position: absolute;
+        left: -1em;
+      }
+
+      :target:has(> .when) {
+        font-weight: 900;
+      }
+
+      :target:has(> .when) .when::before {
+        content: "⏵";
+        position: absolute;
+        left: -1em;
+      }
+
+      :target:has(> .when) .when {
+        color: whitesmoke;
+        font-weight: bold;
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="content">
+      <header>
+        <h1><a class="home" href="/">↩️</a> {{ .Title }}</h1>
+        {{ if gt (len .Participants) 2 }}
+        <ul class="participants">
+          {{- range .Participants }}
+          <li>{{ .Name }}</li>
+          {{- end }}
+        </ul>
+        {{ end }}
+      </header>
+      <main>
+        {{- range .Dates }} {{ $date := (index . 0).Date }}
+        <div class="date">
+          <a href="#date-{{ $date }}">{{ $date }}</a>
+          <ol id="date-{{ $date }}" class="messages">
+            {{- range . }}
+            <li id="msg-{{ .Timestamp }}" class="{{ if .Me }}me{{ end }}">
+              <a class="when" href="#msg-{{ .Timestamp }}">{{ .Time }}</a>
+              {{- if .Share }} {{- if .Share.ShareText }}
+              <details>
+                <summary>
+                  {{- end }}
+                  {{ if .Share.Link }}<a class="share" href="{{ .Share.Link }}">{{ else }}<p>{{ end }}
+                    {{- if .Share.OriginalContentOwner }}Post by {{ .Share.OriginalContentOwner }}{{ else }}Link{{ end }}
+                  {{- if .Share.Link }}</a>{{ else }}</p>{{ end }}
+                  {{- if .Share.ShareText }}
+                </summary>
+                {{ .Share.ShareText }}
+              </details>
+              {{ end }} {{ else if .Audios }} {{- range .Audios }}
+              <audio controls src="/{{ .Src }}"></audio>
+              {{ end }} {{ else if .Photos }} {{- range .Photos }}
+              <label class="photo">
+                <input type="checkbox" />
+                <img src="/{{ .Src }}" alt="" />
+              </label>
+              {{ end }} {{ else if .Videos }} {{- range .Videos }}
+              <video controls src="/{{ .Src }}"></video>
+              {{ end }} {{- else if .Content }}
+              <p>{{ .Content }}</p>
+              {{- else }}
+              <p class="one-time">Sent one-time message.</p>
+              {{- end }} {{- if and (gt (len $.Participants) 2) (not .Me) }}<span class="sender">{{ .Sender }}</span>{{
+              end }}
+            </li>
+            {{- end }}
+          </ol>
+        </div>
+        {{- end }}
+      </main>
+    </div>
+  </body>
+</html>
