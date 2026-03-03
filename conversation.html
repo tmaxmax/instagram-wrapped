@@ -15,7 +15,7 @@
       :root {
         --font-serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
         --font-sans: Optima, Candara, "Noto Sans", source-sans-pro, sans-serif;
-        --content-max-width: 65ch;
+        --content-max-width: 36rem;
         --message-padding: 3em;
       }
 
@@ -283,6 +283,70 @@
       :target:has(> .message) .sender {
         font-weight: bold;
       }
+
+      .statistics {
+        display: contents;
+      }
+
+      .statistics h2 {
+        max-width: var(--content-max-width);
+        padding-left: 5em;
+        margin: 0 auto;
+      }
+
+      .graph {
+        display: flex;
+        width: 100%;
+        max-width: fit-content;
+        margin: 0.5em auto;
+        flex-direction: row;
+        min-height: min(20vh, 20em);
+        overflow-y: auto;
+        scrollbar-width: thin;
+        column-gap: 0.2em;
+      }
+
+      .graph .bar {
+        flex: 0 0 auto;
+        width: 0.7em;
+        position: relative;
+        display: flex;
+        flex-direction: column-reverse;
+        cursor: pointer;
+      }
+
+      .graph .bar .total {
+        background-color: lightblue;
+        position: absolute;
+        width: 100%;
+      }
+
+      .graph .bar .participant {
+        width: 100%;
+        z-index: 1;
+        visibility: hidden;
+      }
+
+      .graph .bar:hover {
+        background-color: rgb(25, 25, 25);
+      }
+
+      .graph .bar:hover .participant {
+        visibility: visible;
+      }
+
+      .graph .bar .participant:nth-of-type(2) {
+        background-color: red;
+      }
+
+      .graph .bar .participant:nth-of-type(3) {
+        background-color: gold;
+      }
+
+      .graph .bar .year {
+        position: absolute;
+        bottom: -2lh;
+      }
     </style>
   </head>
   <body>
@@ -297,6 +361,25 @@
         </ul>
         {{ end }}
       </header>
+      <section class="statistics">
+        <h2>Statistics</h2>
+        {{ $act := .Activity }}
+        <div class="graph">
+          {{- range $i, $m := $act.Months }}
+          {{ $y := $m.Year }}
+          {{ $mt := $m.Month }}
+          <div class="bar">
+            <div class="total" style="height: calc(100% * {{ $m.Total.Norm }}); top: calc(100% - 100% * {{ $m.Total.Norm }})"></div>
+            {{- range $sender, $c := .BySender }}
+              <div class="participant" style="height: calc(100% * {{ $c.Norm }} * {{ $m.Total.Norm }});"></div>
+            {{- end }}
+            {{ if or (eq $i 0) (eq $mt 1) }}
+            <span class="year">{{ $y }}</span>
+            {{ end }}
+          </div>
+          {{- end }}
+        </div>
+      </section>
       <main>
         {{- range .Dates }} {{ $date := (index . 0).Date }}
         <div class="date">

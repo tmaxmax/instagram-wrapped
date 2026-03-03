@@ -54,6 +54,17 @@ type Activity struct {
 type ActivityMonth struct {
 	Total    ActivityCount
 	BySender map[String]ActivityCount
+	month    time.Time
+}
+
+func (a ActivityMonth) Year() int {
+	y, _, _ := a.month.Date()
+	return y
+}
+
+func (a ActivityMonth) Month() time.Month {
+	_, m, _ := a.month.Date()
+	return m
 }
 
 type ActivityCount struct {
@@ -101,7 +112,8 @@ func (c Conversation) Activity() Activity {
 	}
 
 	for i := range a.Months {
-		y, m, _ := start.AddDate(0, i, 0).Date()
+		d := start.AddDate(0, i, 0)
+		y, m, _ := d.Date()
 
 		numDays := daysIn(m, y)
 		if i == 0 {
@@ -111,6 +123,7 @@ func (c Conversation) Activity() Activity {
 		}
 
 		mt := &a.Months[i]
+		mt.month = d
 		mt.Total.Perc = float64(mt.Total.Abs) / float64(a.Total)
 		mt.Total.Norm = normalize(mt.Total.Abs, numDays)
 
@@ -247,7 +260,7 @@ func main() {
 	})
 
 	http.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		template.Must(template.ParseFiles("list.html")).Execute(w, conversations)
+		parseExec(w, "list.html", conversations)
 	})
 
 	http.HandleFunc("GET /{conversation}/{$}", func(w http.ResponseWriter, r *http.Request) {
@@ -257,8 +270,7 @@ func main() {
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		template.Must(template.ParseFiles("conversation.html")).Execute(w, conv)
+		parseExec(w, "conversation.html", conv)
 	})
 
 	http.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
@@ -345,4 +357,18 @@ func dateEqual(date1, date2 time.Time) bool {
 
 func daysIn(m time.Month, year int) int {
 	return time.Date(year, m+1, 0, 0, 0, 0, 0, time.UTC).Day()
+}
+
+func parseExec(w http.ResponseWriter, templatePath string, data any) {
+	t, err := template.ParseFiles(templatePath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "parse: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := t.Execute(w, data); err != nil {
+		fmt.Fprintf(os.Stderr, "render: %v\n", err)
+	}
 }
