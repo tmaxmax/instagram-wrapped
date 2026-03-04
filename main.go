@@ -17,6 +17,7 @@ import (
 )
 
 type Conversation struct {
+	ID           string        `json:"-"`
 	Messages     []Message     `json:"messages"`
 	Participants []Participant `json:"participants"`
 	Title        String        `json:"title"`
@@ -347,6 +348,7 @@ func decodeConversation(root, conversationID string) (Conversation, error) {
 
 		if conv.Title == "" {
 			conv = c
+			conv.ID = conversationID
 		} else {
 			conv.Messages = append(conv.Messages, c.Messages...)
 		}

@@ -27,6 +27,10 @@
         margin: 0 auto;
       }
 
+      html {
+        scroll-padding-top: 33%;
+      }
+
       body {
         width: 100%;
         padding: 2em;
@@ -53,6 +57,10 @@
       li {
         list-style: none;
       }
+
+      :target {
+        font-weight: 900;
+      }
     </style>
   </head>
   <body>
@@ -60,7 +68,7 @@
       <h1>Conversations</h1>
       <ul>
         {{ range . }}
-        <li><a href="/{{ .Name }}">{{ .Name }}</a></li>
+        <li id="conv-{{ .Name }}"><a href="/{{ .Name }}">{{ .Name }}</a></li>
         {{ end }}
       </ul>
     </div>

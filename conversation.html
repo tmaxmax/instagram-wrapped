@@ -66,9 +66,15 @@
         margin-bottom: 0.3em;
       }
 
-      .home {
+      a.home {
         cursor: pointer;
         text-decoration: none;
+      }
+
+      a.current {
+        text-decoration: none;
+        cursor: pointer;
+        color: whitesmoke;
       }
 
       .content > header .participants {
@@ -485,7 +491,7 @@
   <body>
     <div class="content">
       <header>
-        <h1><a class="home" href="/">↩️</a> {{ .Title }}</h1>
+        <h1><a class="home" href="/#conv-{{ .ID }}">↩️</a> <a href="" class="current">{{ .Title }}</a></h1>
         {{ if gt (len .Participants) 2 }}
         <ul class="participants">
           {{- range .Participants }}
