@@ -67,6 +67,10 @@ func (a ActivityMonth) Month() time.Month {
 	return m
 }
 
+func (a ActivityMonth) Date() string {
+	return a.month.Format(time.DateOnly)
+}
+
 type ActivityCount struct {
 	Abs  int
 	Perc float64
@@ -92,6 +96,10 @@ func (c Conversation) Activity() Activity {
 	for _, msg := range c.Messages {
 		y, m, _ := msg.time.Date()
 		mt := &a.Months[(y-ys)*12+int(m-ms)]
+
+		if mt.month.IsZero() {
+			mt.month = msg.time
+		}
 
 		mt.Total.Abs++
 		maxCount = max(maxCount, mt.Total.Abs)
@@ -123,7 +131,6 @@ func (c Conversation) Activity() Activity {
 		}
 
 		mt := &a.Months[i]
-		mt.month = d
 		mt.Total.Perc = float64(mt.Total.Abs) / float64(a.Total)
 		mt.Total.Norm = normalize(mt.Total.Abs, numDays)
 
@@ -131,6 +138,10 @@ func (c Conversation) Activity() Activity {
 			c.Perc = float64(c.Abs) / float64(a.Total)
 			c.Norm = float64(c.Abs) / float64(mt.Total.Abs)
 			mt.BySender[sender] = c
+		}
+
+		if mt.month.IsZero() {
+			mt.month = d
 		}
 	}
 
@@ -264,7 +275,13 @@ func main() {
 	})
 
 	http.HandleFunc("GET /{conversation}/{$}", func(w http.ResponseWriter, r *http.Request) {
-		conv, err := decodeConversation(root, r.PathValue("conversation"))
+		conversationID := r.PathValue("conversation")
+		if conversationID == "favicon.ico" {
+			http.NotFound(w, r)
+			return
+		}
+
+		conv, err := decodeConversation(root, conversationID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -360,7 +377,13 @@ func daysIn(m time.Month, year int) int {
 }
 
 func parseExec(w http.ResponseWriter, templatePath string, data any) {
-	t, err := template.ParseFiles(templatePath)
+	t, err := template.New(filepath.Base(templatePath)).
+		Funcs(template.FuncMap{
+			"perc": func(f float64) string {
+				return fmt.Sprintf("%.1f%%", f*100)
+			},
+		}).
+		ParseFiles(templatePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "parse: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

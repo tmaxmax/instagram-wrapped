@@ -51,7 +51,7 @@
         scroll-padding-top: 30vh;
       }
 
-      header {
+      .content > header {
         max-width: var(--content-max-width);
         padding: 0.5em 0;
         margin: 0 auto;
@@ -71,14 +71,14 @@
         text-decoration: none;
       }
 
-      .participants {
+      .content > header .participants {
         display: flex;
         column-gap: 0.5em;
         flex-wrap: wrap;
         list-style-type: none;
       }
 
-      .participants li:not(:last-of-type)::after {
+      .content > header .participants li:not(:last-of-type)::after {
         content: "•";
         display: inline-block;
         margin-left: 0.5em;
@@ -115,8 +115,8 @@
         padding-right: var(--message-padding);
       }
 
-      li:not(.me) + li.me,
-      li.me + li:not(.me) {
+      .messages li:not(.me) + li.me,
+      .messages li.me + li:not(.me) {
         margin-top: 0.5em;
       }
 
@@ -228,7 +228,7 @@
           --message-padding: 20%;
         }
 
-        header {
+        .content > header {
           padding: 0.5em 0 0.5em 5em;
         }
 
@@ -240,6 +240,10 @@
           position: sticky;
           top: 0;
           z-index: 1;
+        }
+
+        .statistics :is(header, .participants, .details) {
+          padding-left: 5rem;
         }
       }
 
@@ -288,31 +292,70 @@
         display: contents;
       }
 
-      .statistics h2 {
+      .statistics header {
         max-width: var(--content-max-width);
-        padding-left: 5em;
         margin: 0 auto;
+      }
+
+      .statistics .participants {
+        display: flex;
+        column-gap: 0.8em;
+        max-width: var(--content-max-width);
+        margin: 0 auto;
+      }
+
+      .statistics .participants li {
+        list-style-type: none;
+        position: relative;
+      }
+
+      .statistics .participants li::before {
+        content: "●";
+        font-size: 1.3em;
+        line-height: 0;
+        display: inline-block;
+        transform: translateY(0.07em);
+        margin-right: 0.2em;
       }
 
       .graph {
         display: flex;
-        width: 100%;
+        min-width: calc(min(var(--content-max-width), 100%) - 2em);
+        padding: 0 1em;
         max-width: fit-content;
-        margin: 0.5em auto;
+        margin: 0.5em auto 0 auto;
         flex-direction: row;
-        min-height: min(20vh, 20em);
         overflow-y: auto;
         scrollbar-width: thin;
-        column-gap: 0.2em;
+      }
+
+      .graph .month {
+        flex: 0 0 auto;
+        width: 0.9em;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .graph .month:first-child {
+        width: 0.7em;
+      }
+
+      .graph .month:not(:first-child) {
+        padding-left: 0.2em;
+      }
+
+      .graph .month input {
+        position: absolute;
+        width: 0;
+        height: 0;
+        opacity: 0;
       }
 
       .graph .bar {
-        flex: 0 0 auto;
-        width: 0.7em;
         position: relative;
         display: flex;
         flex-direction: column-reverse;
-        cursor: pointer;
+        height: min(20em, 20vh);
       }
 
       .graph .bar .total {
@@ -327,11 +370,11 @@
         visibility: hidden;
       }
 
-      .graph .bar:hover {
-        background-color: rgb(25, 25, 25);
+      .graph .month:is(:hover, :has(:checked)) .bar {
+        background-color: rgb(35, 35, 35);
       }
 
-      .graph .bar:hover .participant {
+      .graph .month:is(:hover, :has(:checked)) .participant {
         visibility: visible;
       }
 
@@ -339,13 +382,103 @@
         background-color: red;
       }
 
+      .statistics .participants li:nth-of-type(1)::before {
+        color: red;
+      }
+
       .graph .bar .participant:nth-of-type(3) {
         background-color: gold;
       }
 
-      .graph .bar .year {
-        position: absolute;
-        bottom: -2lh;
+      .statistics .participants li:nth-of-type(2)::before {
+        color: gold;
+      }
+
+      .graph :is(.year, .month-name) {
+        writing-mode: vertical-lr;
+        margin-top: 0.2em;
+        transform: translate(0.2em) rotate(-30deg);
+        font-size: 0.8em;
+        height: 2.4em;
+        user-select: none;
+      }
+
+      .graph .month-name {
+        display: none;
+        color: whitesmoke;
+        text-decoration: none;
+      }
+
+      .graph a.month-name:hover {
+        text-decoration: underline;
+      }
+
+      .graph .month:is(:hover, :has(:checked)) .year {
+        display: none;
+      }
+
+      .graph .month:is(:hover, :has(:checked)) .month-name {
+        display: initial;
+      }
+
+      .statistics .details {
+        max-width: var(--content-max-width);
+        margin: 0 auto;
+      }
+
+      .statistics .details dl {
+        display: none; /* set to grid */
+        grid-template-columns: repeat(3, 1fr);
+        font-size: 0.8em;
+        gap: 0.7em 1em;
+      }
+
+      .statistics .details dl > :first-child {
+        font-style: italic;
+      }
+
+      .statistics .details dt {
+        font-weight: bold;
+      }
+
+      .statistics .details dt::after {
+        content: ":";
+      }
+
+      .statistics header {
+        display: flex;
+      }
+
+      .statistics header label {
+        color: whitesmoke;
+        margin-left: auto;
+        line-height: 1.8;
+        cursor: pointer;
+        font-style: italic;
+        font-weight: bold;
+        user-select: none;
+      }
+
+      .statistics header label:has(:checked) {
+        display: none;
+      }
+
+      .statistics header label:has(:focus-visible) {
+        outline: 1px;
+      }
+
+      .statistics header label input {
+        width: 0;
+        height: 0;
+        opacity: 0;
+      }
+
+      {{- $act := .Activity }}
+      {{- range $act.Months }}
+      .statistics:has([value="{{ .Date }}"]:checked) .details > #graph-details-{{ .Date }},
+      {{ end }}
+      .statistics:has([value=all]:checked) .details > #graph-details-all {
+        display: grid;
       }
     </style>
   </head>
@@ -362,21 +495,62 @@
         {{ end }}
       </header>
       <section class="statistics">
-        <h2>Statistics</h2>
-        {{ $act := .Activity }}
+        <header>
+          <h2>Statistics</h2>
+          <label>
+            All time
+            <input type="radio" name="graph-month" value="all" checked />
+          </label>
+        </header>
+        <ul class="participants">
+          {{- range .Participants }}
+          <li>{{ .Name }}</li>
+          {{- end }}
+        </ul>
         <div class="graph">
           {{- range $i, $m := $act.Months }}
           {{ $y := $m.Year }}
           {{ $mt := $m.Month }}
-          <div class="bar">
-            <div class="total" style="height: calc(100% * {{ $m.Total.Norm }}); top: calc(100% - 100% * {{ $m.Total.Norm }})"></div>
-            {{- range $sender, $c := .BySender }}
-              <div class="participant" style="height: calc(100% * {{ $c.Norm }} * {{ $m.Total.Norm }});"></div>
-            {{- end }}
+          <label class="month">
+            <div class="bar">
+              <div class="total" style="height: calc(100% * {{ $m.Total.Norm }}); top: calc(100% - 100% * {{ $m.Total.Norm }})"></div>
+              {{- range $.Participants }}
+                <div class="participant" style="height: calc(100% * {{ (index $m.BySender .Name).Norm }} * {{ $m.Total.Norm }});"></div>
+              {{- end }}
+            </div>
             {{ if or (eq $i 0) (eq $mt 1) }}
             <span class="year">{{ $y }}</span>
             {{ end }}
-          </div>
+            {{- if gt $m.Total.Abs 0 }}
+            <a href="#date-{{ $m.Date }}" class="month-name">{{ slice $mt.String 0 3 }}</a>
+            {{- else }}
+            <span class="month-name">{{ slice $mt.String 0 3 }}</span>
+            {{- end }}
+            <input type="radio" name="graph-month" value="{{ $m.Date }}" />
+          </label>
+          {{- end }}
+        </div>
+        <div class="details">
+          <dl id="graph-details-all">
+            <div>
+              <dt>All time</dt>
+              <dd>{{ $act.Total }} message{{ if ne $act.Total 1 }}s{{ end }}</dd>
+            </div>
+          </dl>
+          {{- range $i, $m := $act.Months }}
+          <dl id="graph-details-{{ .Date }}">
+            <div>
+              <dt>{{ .Month }} {{ .Year }}</dt>
+              <dd>{{ .Total.Abs }} ({{ perc .Total.Perc }} of total)</dd>
+            </div>
+            {{- range $.Participants }}
+            {{ $c := index $m.BySender .Name }}
+            <div>
+              <dt>{{ .Name }}</dt>
+              <dd>{{ $c.Abs }} ({{ perc $c.Norm }} of month)</dd>
+            </div>
+            {{- end }}
+          </dl>
           {{- end }}
         </div>
       </section>
