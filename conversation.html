@@ -77,14 +77,19 @@
         color: whitesmoke;
       }
 
-      .content > header .participants {
+      .content > .participants {
+        max-width: var(--content-max-width);
+        margin: 0 auto 1rem auto;
+      }
+
+      .content > .participants ul {
         display: flex;
         column-gap: 0.5em;
         flex-wrap: wrap;
         list-style-type: none;
       }
 
-      .content > header .participants li:not(:last-of-type)::after {
+      .content > .participants li:not(:last-of-type)::after {
         content: "•";
         display: inline-block;
         margin-left: 0.5em;
@@ -248,7 +253,8 @@
           z-index: 1;
         }
 
-        .statistics :is(header, .participants, .details) {
+        .statistics :is(header, .participants, .details),
+        .content > .participants {
           padding-left: 5rem;
         }
       }
@@ -308,6 +314,7 @@
         column-gap: 0.8em;
         max-width: var(--content-max-width);
         margin: 0 auto;
+        flex-wrap: wrap;
       }
 
       .statistics .participants li {
@@ -365,7 +372,7 @@
       }
 
       .graph .bar .total {
-        background-color: lightblue;
+        background-color: lightgray;
         position: absolute;
         width: 100%;
       }
@@ -380,24 +387,12 @@
         background-color: rgb(35, 35, 35);
       }
 
+      .graph .month:is(:hover, :has(:checked)) .total {
+        background-color: whitesmoke;
+      }
+
       .graph .month:is(:hover, :has(:checked)) .participant {
         visibility: visible;
-      }
-
-      .graph .bar .participant:nth-of-type(2) {
-        background-color: red;
-      }
-
-      .statistics .participants li:nth-of-type(1)::before {
-        color: red;
-      }
-
-      .graph .bar .participant:nth-of-type(3) {
-        background-color: gold;
-      }
-
-      .statistics .participants li:nth-of-type(2)::before {
-        color: gold;
       }
 
       .graph :is(.year, .month-name) {
@@ -437,6 +432,8 @@
         grid-template-columns: repeat(3, 1fr);
         font-size: 0.8em;
         gap: 0.7em 1em;
+        max-height: 16em;
+        overflow-y: auto;
       }
 
       .statistics .details dl > :first-child {
@@ -480,6 +477,17 @@
       }
 
       {{- $act := .Activity }}
+
+      {{- range $i, $c := $act.Colors }}
+      .graph .bar .participant:nth-of-type({{ add $i 2 }}) {
+        background-color: {{ $c }};
+      }
+
+      .statistics .participants li:nth-of-type({{ add $i 1 }})::before {
+        color: {{ $c }};
+      }
+      {{- end }}
+
       {{- range $act.Months }}
       .statistics:has([value="{{ .Date }}"]:checked) .details > #graph-details-{{ .Date }},
       {{ end }}
@@ -492,14 +500,17 @@
     <div class="content">
       <header>
         <h1><a class="home" href="/#conv-{{ .ID }}">↩️</a> <a href="" class="current">{{ .Title }}</a></h1>
-        {{ if gt (len .Participants) 2 }}
-        <ul class="participants">
+      </header>
+      {{- if gt (len .Participants) 2 }}
+      <section class="participants">
+        <h2>Participants</h2>
+        <ul>
           {{- range .Participants }}
           <li>{{ .Name }}</li>
           {{- end }}
         </ul>
-        {{ end }}
-      </header>
+      </section>
+      {{- end }}
       <section class="statistics">
         <header>
           <h2>Statistics</h2>
@@ -509,8 +520,13 @@
           </label>
         </header>
         <ul class="participants">
-          {{- range .Participants }}
+          {{- range $i, $s := $act.BySender }}
+          {{- if and (lt $i 10) (gt $s.Total 0 )}}
           <li>{{ .Name }}</li>
+          {{- end }}
+          {{- end }}
+          {{- if gt (len $act.BySender) 10 }}
+          <li>Others</li>
           {{- end }}
         </ul>
         <div class="graph">
@@ -520,9 +536,9 @@
           <label class="month">
             <div class="bar">
               <div class="total" style="height: calc(100% * {{ $m.Total.Norm }}); top: calc(100% - 100% * {{ $m.Total.Norm }})"></div>
-              {{- range $.Participants }}
+                {{- range $act.BySender }}
                 <div class="participant" style="height: calc(100% * {{ (index $m.BySender .Name).Norm }} * {{ $m.Total.Norm }});"></div>
-              {{- end }}
+                {{- end }}
             </div>
             {{ if or (eq $i 0) (eq $mt 1) }}
             <span class="year">{{ $y }}</span>
@@ -542,6 +558,14 @@
               <dt>All time</dt>
               <dd>{{ $act.Total }} message{{ if ne $act.Total 1 }}s{{ end }}</dd>
             </div>
+            {{- range $act.BySender }}
+            {{- if gt .Total 0 }}
+            <div>
+              <dt>{{ .Name }}</dt>
+              <dd>{{ .Total }}</dd>
+            </div>
+            {{ end }}
+            {{- end }}
           </dl>
           {{- range $i, $m := $act.Months }}
           <dl id="graph-details-{{ .Date }}">
@@ -549,12 +573,14 @@
               <dt>{{ .Month }} {{ .Year }}</dt>
               <dd>{{ .Total.Abs }} ({{ perc .Total.Perc }} of total)</dd>
             </div>
-            {{- range $.Participants }}
-            {{ $c := index $m.BySender .Name }}
+            {{- range $act.BySender }}
+            {{- $c := index $m.BySender .Name }}
+            {{- if gt $c.Abs 0 }}
             <div>
               <dt>{{ .Name }}</dt>
               <dd>{{ $c.Abs }} ({{ perc $c.Norm }} of month)</dd>
             </div>
+            {{- end }}
             {{- end }}
           </dl>
           {{- end }}

@@ -1,12 +1,17 @@
 package main
 
 import (
+	"cmp"
 	_ "embed"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"html/template"
+	"io"
 	"log"
 	"math"
+	"math/rand/v2"
 	"net/http"
 	"net/url"
 	"os"
@@ -50,6 +55,7 @@ type Activity struct {
 	Start, End time.Time
 	Months     []ActivityMonth
 	Total      int
+	BySender   []SenderActivity
 }
 
 type ActivityMonth struct {
@@ -78,6 +84,11 @@ type ActivityCount struct {
 	Norm float64
 }
 
+type SenderActivity struct {
+	Name  String
+	Total int
+}
+
 func (c Conversation) Activity() Activity {
 	start := c.Messages[0].time
 	end := c.Messages[len(c.Messages)-1].time
@@ -86,13 +97,15 @@ func (c Conversation) Activity() Activity {
 	ye, me, de := end.Date()
 
 	a := Activity{
-		Start:  start,
-		End:    end,
-		Months: make([]ActivityMonth, (ye-ys)*12+int(me-ms)+1),
-		Total:  len(c.Messages),
+		Start:    start,
+		End:      end,
+		Months:   make([]ActivityMonth, (ye-ys)*12+int(me-ms)+1),
+		Total:    len(c.Messages),
+		BySender: make([]SenderActivity, 0, len(c.Participants)),
 	}
 	ambiguous := c.ambiguousParticipants()
 	maxCount := 0
+	totalBySender := map[String]int{}
 
 	for _, msg := range c.Messages {
 		y, m, _ := msg.time.Date()
@@ -110,6 +123,7 @@ func (c Conversation) Activity() Activity {
 		}
 
 		if _, ok := ambiguous[msg.Sender]; !ok {
+			totalBySender[msg.Sender]++
 			c := mt.BySender[msg.Sender]
 			c.Abs++
 			mt.BySender[msg.Sender] = c
@@ -145,6 +159,30 @@ func (c Conversation) Activity() Activity {
 			mt.month = d
 		}
 	}
+
+	for sender, c := range totalBySender {
+		a.BySender = append(a.BySender, SenderActivity{
+			Name:  sender,
+			Total: c,
+		})
+	}
+
+	for _, sender := range c.Participants {
+		if _, ok := totalBySender[sender.Name]; !ok {
+			a.BySender = append(a.BySender, SenderActivity{Name: sender.Name})
+		}
+	}
+
+	slices.SortFunc(a.BySender, func(a, b SenderActivity) int {
+		_, amba := ambiguous[a.Name]
+		_, ambb := ambiguous[b.Name]
+
+		return cmp.Or(
+			cmp.Compare(b.Total, a.Total),
+			cmpBool(amba, ambb),
+			cmp.Compare(a.Name, b.Name),
+		)
+	})
 
 	return a
 }
@@ -214,53 +252,6 @@ type Share struct {
 
 func main() {
 	root := os.Args[1]
-	if len(os.Args) >= 3 {
-		conv, err := decodeConversation(root, os.Args[2])
-		if err != nil {
-			panic(err)
-		}
-
-		activity := conv.Activity()
-
-		fmt.Print("Participants: ")
-		for i, p := range conv.Participants {
-			if i > 0 {
-				fmt.Print(", ")
-			}
-
-			fmt.Print(p.Name)
-		}
-		fmt.Printf("\nTotal activity: %d messages\n", activity.Total)
-
-		fmt.Printf("From %s to %s:", activity.Start.Format("2006-01"), activity.End.Format("2006-01"))
-		for i, mt := range activity.Months {
-			if i%6 == 0 {
-				fmt.Println()
-			}
-
-			if mt.Total.Abs == 0 {
-				fmt.Print("  -")
-				continue
-			}
-
-			fmt.Printf("  %.1f%% (%d: ", mt.Total.Perc*100, mt.Total.Abs)
-
-			for i, p := range conv.Participants {
-				if i > 0 {
-					fmt.Print("/")
-				}
-
-				if c, ok := mt.BySender[p.Name]; ok {
-					fmt.Printf("%.0f", c.Norm*100)
-				}
-			}
-
-			fmt.Print(")")
-		}
-		fmt.Println()
-
-		return
-	}
 
 	conversations, err := os.ReadDir(root)
 	if err != nil {
@@ -384,6 +375,9 @@ func parseExec(w http.ResponseWriter, templatePath string, data any) {
 			"perc": func(f float64) string {
 				return fmt.Sprintf("%.1f%%", f*100)
 			},
+			"add": func(a, b int) int {
+				return a + b
+			},
 		}).
 		ParseFiles(templatePath)
 	if err != nil {
@@ -396,4 +390,62 @@ func parseExec(w http.ResponseWriter, templatePath string, data any) {
 	if err := t.Execute(w, data); err != nil {
 		fmt.Fprintf(os.Stderr, "render: %v\n", err)
 	}
+}
+
+func (a Activity) Colors() []string {
+	var theme = []string{
+		"#CC4400",
+		"#D66915",
+		"#E08E29",
+		"#F0C761",
+		"#FFFF99",
+		"#C2FCFF",
+		"#7CC6DE",
+		"#3890BC",
+		"#1C489A",
+		"#000077",
+	}
+
+	numColors := 0
+	firstTwo := []string(nil)
+	for _, s := range a.BySender {
+		if s.Total > 0 {
+			numColors++
+			if numColors <= 2 {
+				firstTwo = append(firstTwo, string(s.Name))
+			}
+		}
+	}
+
+	if numColors == 2 {
+		h := fnv.New128a()
+		io.WriteString(h, firstTwo[0])
+		io.WriteString(h, firstTwo[1])
+		sum := h.Sum(nil)
+		r := rand.New(rand.NewPCG(binary.BigEndian.Uint64(sum), binary.BigEndian.Uint64(sum[8:])))
+		i := r.IntN(len(theme) / 2)
+		j := r.IntN(len(theme) / 2)
+		return []string{theme[2*i], theme[2*j+1]}
+	}
+
+	stride := max(1, len(theme)/numColors)
+	colors := make([]string, 0, min(numColors, len(theme)))
+
+	for i := 0; i < len(theme); i += stride {
+		colors = append(colors, theme[i])
+	}
+
+	return colors
+}
+
+func cmpBool(a, b bool) int {
+	if a == b {
+		return 0
+	}
+
+	if !a && b {
+		return -1
+	}
+
+	return 1
 }
