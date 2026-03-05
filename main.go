@@ -210,6 +210,7 @@ type Message struct {
 	Content   String     `json:"content"`
 	Sender    String     `json:"sender_name"`
 	Timestamp int64      `json:"timestamp_ms"`
+	Me        bool       `json:"-"`
 	time      time.Time  `json:"-"`
 }
 
@@ -231,10 +232,6 @@ func (m Message) Time() string {
 	return m.time.Format(time.TimeOnly)
 }
 
-func (m Message) Me() bool {
-	return m.Sender == "teoxm"
-}
-
 type Resource struct {
 	URI string `json:"uri"`
 }
@@ -252,10 +249,15 @@ type Share struct {
 }
 
 func main() {
-	root := os.Args[1]
-	selfID := "teoxm"
+	const inboxRoot = "your_instagram_activity/messages/inbox"
+	const selfID = "teoxm"
 
-	conversations, err := os.ReadDir(root)
+	profile, err := decodeJSON[PersonalInformation]("personal_information/personal_information/personal_information.json")
+	if err != nil {
+		panic(err)
+	}
+
+	conversations, err := os.ReadDir(inboxRoot)
 	if err != nil {
 		panic(err)
 	}
@@ -275,7 +277,7 @@ func main() {
 			return
 		}
 
-		conv, err := decodeConversation(root, conversationID, selfID)
+		conv, err := decodeConversation(inboxRoot, conversationID, selfID, profile.Name())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -285,7 +287,7 @@ func main() {
 	})
 
 	http.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filepath.Join(root, r.URL.Path))
+		http.ServeFile(w, r, filepath.Join(inboxRoot, r.URL.Path))
 	})
 
 	log.Fatalln(http.ListenAndServe(":8080", nil))
@@ -313,7 +315,7 @@ func decodeInstagramString(escaped string) string {
 	return string(bytes)
 }
 
-func decodeConversation(root, conversationID, selfID string) (Conversation, error) {
+func decodeConversation(root, conversationID, selfID string, selfName String) (Conversation, error) {
 	loc, err := time.LoadLocation("Europe/Bucharest")
 	if err != nil {
 		return Conversation{}, fmt.Errorf("load location: %w", err)
@@ -327,14 +329,9 @@ func decodeConversation(root, conversationID, selfID string) (Conversation, erro
 	var conv Conversation
 
 	for _, f := range slices.Backward(convFiles) {
-		data, err := os.ReadFile(f)
+		c, err := decodeJSON[Conversation](f)
 		if err != nil {
-			return Conversation{}, fmt.Errorf("read file: %w", err)
-		}
-
-		var c Conversation
-		if err := json.Unmarshal(data, &c); err != nil {
-			return Conversation{}, fmt.Errorf("unmarshal: %w", err)
+			return Conversation{}, err
 		}
 
 		slices.Reverse(c.Messages)
@@ -349,6 +346,7 @@ func decodeConversation(root, conversationID, selfID string) (Conversation, erro
 
 	for i := range conv.Messages {
 		m := &conv.Messages[i]
+		m.Me = m.Sender == selfName
 
 		if u, err := url.ParseRequestURI(string(m.Content)); err == nil && strings.HasPrefix(u.Scheme, "http") {
 			m.Share = &Share{Link: string(m.Content)}
@@ -360,7 +358,7 @@ func decodeConversation(root, conversationID, selfID string) (Conversation, erro
 			if i >= 0 {
 				id := strings.Split(m.Share.Link[i:], "/")[2]
 				if id == selfID {
-					m.Share.OriginalContentOwner = String(id)
+					m.Share.OriginalContentOwner = selfName
 					m.Share.Story = true
 				} else {
 					m.Share = nil
@@ -464,4 +462,40 @@ func cmpBool(a, b bool) int {
 	}
 
 	return 1
+}
+
+type PersonalInformation struct {
+	ProfileUser []struct {
+		StringMapData map[String]struct {
+			Href      string `json:"href"`
+			Value     String `json:"value"`
+			Timestamp int64  `json:"timestamp"`
+		} `json:"string_map_data"`
+	} `json:"profile_user"`
+}
+
+func decodeJSON[T any](f string) (T, error) {
+	data, err := os.ReadFile(f)
+	if err != nil {
+		return *new(T), fmt.Errorf("read: %w", err)
+	}
+
+	var v T
+	if err := json.Unmarshal(data, &v); err != nil {
+		return *new(T), fmt.Errorf("unmarshal: %w", err)
+	}
+
+	return v, nil
+}
+
+func (p PersonalInformation) Name() String {
+	for _, u := range p.ProfileUser {
+		for key, data := range u.StringMapData {
+			if strings.Contains(string(key), "name") {
+				return data.Value
+			}
+		}
+	}
+
+	return ""
 }
