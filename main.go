@@ -248,10 +248,12 @@ type Share struct {
 	Link                 string `json:"link"`
 	ShareText            String `json:"share_text"`
 	OriginalContentOwner String `json:"original_content_owner"`
+	Story                bool   `json:"-"`
 }
 
 func main() {
 	root := os.Args[1]
+	selfID := "teoxm"
 
 	conversations, err := os.ReadDir(root)
 	if err != nil {
@@ -273,7 +275,7 @@ func main() {
 			return
 		}
 
-		conv, err := decodeConversation(root, conversationID)
+		conv, err := decodeConversation(root, conversationID, selfID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -311,7 +313,7 @@ func decodeInstagramString(escaped string) string {
 	return string(bytes)
 }
 
-func decodeConversation(root, conversationID string) (Conversation, error) {
+func decodeConversation(root, conversationID, selfID string) (Conversation, error) {
 	loc, err := time.LoadLocation("Europe/Bucharest")
 	if err != nil {
 		return Conversation{}, fmt.Errorf("load location: %w", err)
@@ -348,9 +350,23 @@ func decodeConversation(root, conversationID string) (Conversation, error) {
 	for i := range conv.Messages {
 		m := &conv.Messages[i]
 
-		if u, err := url.ParseRequestURI(string(m.Content)); err == nil && u.Scheme != "" {
+		if u, err := url.ParseRequestURI(string(m.Content)); err == nil && strings.HasPrefix(u.Scheme, "http") {
 			m.Share = &Share{Link: string(m.Content)}
 			m.Content = ""
+		}
+
+		if m.Share != nil {
+			i := strings.Index(m.Share.Link, "instagram.com/stories/")
+			if i >= 0 {
+				id := strings.Split(m.Share.Link[i:], "/")[2]
+				if id == selfID {
+					m.Share.OriginalContentOwner = String(id)
+					m.Share.Story = true
+				} else {
+					m.Share = nil
+					m.Content = String(fmt.Sprintf("Story by %s", id))
+				}
+			}
 		}
 
 		m.time = time.UnixMilli(m.Timestamp).In(loc)

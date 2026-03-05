@@ -600,7 +600,7 @@
                   <summary>
                     {{- end }}
                     {{ if .Share.Link }}<a class="share" href="{{ .Share.Link }}">{{ else }}<p>{{ end }}
-                      {{- if .Share.OriginalContentOwner }}Post by {{ .Share.OriginalContentOwner }}{{ else }}Link{{ end }}
+                      {{- if .Share.OriginalContentOwner }}{{ if .Share.Story }}Story{{ else }}Post{{ end }} by {{ .Share.OriginalContentOwner }}{{ else }}Link{{ end }}
                     {{- if .Share.Link }}</a>{{ else }}</p>{{ end }}
                     {{- if .Share.ShareText }}
                   </summary>
