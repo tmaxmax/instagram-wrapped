@@ -245,12 +245,10 @@ type Share struct {
 	Link                 string `json:"link"`
 	ShareText            String `json:"share_text"`
 	OriginalContentOwner String `json:"original_content_owner"`
-	Story                bool   `json:"-"`
 }
 
 func main() {
 	const inboxRoot = "your_instagram_activity/messages/inbox"
-	const selfID = "teoxm"
 
 	profile, err := decodeJSON[PersonalInformation]("personal_information/personal_information/personal_information.json")
 	if err != nil {
@@ -277,7 +275,7 @@ func main() {
 			return
 		}
 
-		conv, err := decodeConversation(inboxRoot, conversationID, selfID, profile.Name())
+		conv, err := decodeConversation(inboxRoot, conversationID, profile.Name())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -315,7 +313,7 @@ func decodeInstagramString(escaped string) string {
 	return string(bytes)
 }
 
-func decodeConversation(root, conversationID, selfID string, selfName String) (Conversation, error) {
+func decodeConversation(root, conversationID string, selfName String) (Conversation, error) {
 	loc, err := time.LoadLocation("Europe/Bucharest")
 	if err != nil {
 		return Conversation{}, fmt.Errorf("load location: %w", err)
@@ -356,14 +354,8 @@ func decodeConversation(root, conversationID, selfID string, selfName String) (C
 		if m.Share != nil {
 			i := strings.Index(m.Share.Link, "instagram.com/stories/")
 			if i >= 0 {
-				id := strings.Split(m.Share.Link[i:], "/")[2]
-				if id == selfID {
-					m.Share.OriginalContentOwner = selfName
-					m.Share.Story = true
-				} else {
-					m.Share = nil
-					m.Content = String(fmt.Sprintf("Story by %s", id))
-				}
+				m.Share = nil
+				m.Content = "Replied to story"
 			}
 		}
 
