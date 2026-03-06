@@ -154,14 +154,16 @@
         text-decoration: underline;
       }
 
-      .message p,
-      .message details {
+      .message > p,
+      .message > details {
         overflow-wrap: anywhere;
         text-align: justify;
       }
 
-      .message details > summary {
+      .message > details > summary {
         list-style: none;
+        display: flex;
+        column-gap: 0.3em;
       }
 
       .message summary::-webkit-details-marker {
@@ -175,6 +177,7 @@
       :not(.me) > details summary::after,
       .me > details summary::before {
         font-size: 0.8rem;
+        transform: translateY(0.2em);
         content: " ►";
       }
 
