@@ -14,6 +14,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/klauspost/compress/gzhttp"
 )
 
 const (
@@ -58,16 +60,18 @@ func main() {
 		return !e.IsDir()
 	})
 
-	http.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		parseExec(w, "list.html", conversations, dev)
-	})
-
 	stories, err := decodeStories(root, selfID, profile.Name(), loc)
 	if err != nil {
 		panic(err)
 	}
 
-	http.HandleFunc("GET /conversation/{id}/{$}", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		parseExec(w, "list.html", conversations, dev)
+	})
+
+	mux.HandleFunc("GET /conversation/{id}/{$}", func(w http.ResponseWriter, r *http.Request) {
 		conversationID := r.PathValue("id")
 		if conversationID == "favicon.ico" {
 			http.NotFound(w, r)
@@ -83,10 +87,10 @@ func main() {
 		parseExec(w, "conversation.html", conv, dev)
 	})
 
-	http.Handle("GET /conversation/", http.StripPrefix("/conversation/", http.FileServer(http.Dir(inboxRoot))))
-	http.Handle("GET /media/", http.StripPrefix("/media/", http.FileServer(http.Dir(filepath.Join(root, "media")))))
+	mux.Handle("GET /conversation/", http.StripPrefix("/conversation/", http.FileServer(http.Dir(inboxRoot))))
+	mux.Handle("GET /media/", http.StripPrefix("/media/", http.FileServer(http.Dir(filepath.Join(root, "media")))))
 
-	http.HandleFunc("GET /story/{id}/{$}", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /story/{id}/{$}", func(w http.ResponseWriter, r *http.Request) {
 		var tmpl struct {
 			Story
 			MessageID, ConversationID string
@@ -107,9 +111,9 @@ func main() {
 		parseExec(w, "story.html", tmpl, dev)
 	})
 
-	http.Handle("/", http.NotFoundHandler())
+	mux.Handle("/", http.NotFoundHandler())
 
-	log.Fatalln(http.ListenAndServe(":8080", nil))
+	log.Fatalln(http.ListenAndServe(":8080", gzhttp.GzipHandler(mux)))
 }
 
 //go:embed *.html
@@ -150,6 +154,10 @@ func parseExec(w http.ResponseWriter, templatePath string, data any, dev bool) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if !dev {
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+	}
+
 	if err := t.Execute(w, data); err != nil {
 		fmt.Fprintf(os.Stderr, "render: %v\n", err)
 	}
