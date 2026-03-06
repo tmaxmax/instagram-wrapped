@@ -150,7 +150,7 @@
         </ul>
       </details>
       {{- end }} {{- if gt .NumShares 0 }}
-      <details {{ if lt (len .Refs) 14 }}open{{ end }}>
+      <details>
         <summary>You shared this story in {{ .NumShares }} conversation{{ if ne .NumShares 1}}s{{ end }}.</summary>
         <ul>
           {{- range .Shares }}
