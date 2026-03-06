@@ -520,30 +520,30 @@
           </label>
         </header>
         <ul class="participants">
-          {{- range $i, $s := $act.BySender }}
-          {{- if and (lt $i 10) (gt $s.Total 0 )}}
+          {{- range $i, $s := $act.BySender }} {{- if and (lt $i 10) (gt $s.Total 0 )}}
           <li>{{ .Name }}</li>
-          {{- end }}
-          {{- end }}
-          {{- if gt (len $act.BySender) 10 }}
+          {{- end }} {{- end }} {{- if gt (len $act.BySender) 10 }}
           <li>Others</li>
           {{- end }}
         </ul>
         <div class="graph">
-          {{- range $i, $m := $act.Months }}
-          {{ $y := $m.Year }}
-          {{ $mt := $m.Month }}
+          {{- range $i, $m := $act.Months }} {{ $y := $m.Year }} {{ $mt := $m.Month }}
           <label class="month">
             <div class="bar">
-              <div class="total" style="height: calc(100% * {{ $m.Total.Norm }}); top: calc(100% - 100% * {{ $m.Total.Norm }})"></div>
-                {{- range $act.BySender }}
-                <div class="participant" style="height: calc(100% * {{ (index $m.BySender .Name).Norm }} * {{ $m.Total.Norm }});"></div>
-                {{- end }}
+              <div
+                class="total"
+                style="height: calc(100% * {{ $m.Total.Norm }}); top: calc(100% - 100% * {{ $m.Total.Norm }})"
+              ></div>
+              {{- range $act.BySender }}
+              <div
+                class="participant"
+                style="height: calc(100% * {{ (index $m.BySender .Name).Norm }} * {{ $m.Total.Norm }});"
+              ></div>
+              {{- end }}
             </div>
             {{ if or (eq $i 0) (eq $mt 1) }}
             <span class="year">{{ $y }}</span>
-            {{ end }}
-            {{- if gt $m.Total.Abs 0 }}
+            {{ end }} {{- if gt $m.Total.Abs 0 }}
             <a href="#date-{{ $m.Date }}" class="month-name">{{ slice $mt.String 0 3 }}</a>
             {{- else }}
             <span class="month-name">{{ slice $mt.String 0 3 }}</span>
@@ -558,14 +558,12 @@
               <dt>All time</dt>
               <dd>{{ $act.Total }} message{{ if ne $act.Total 1 }}s{{ end }}</dd>
             </div>
-            {{- range $act.BySender }}
-            {{- if gt .Total 0 }}
+            {{- range $act.BySender }} {{- if gt .Total 0 }}
             <div>
               <dt>{{ .Name }}</dt>
               <dd>{{ .Total }}</dd>
             </div>
-            {{ end }}
-            {{- end }}
+            {{ end }} {{- end }}
           </dl>
           {{- range $i, $m := $act.Months }}
           <dl id="graph-details-{{ .Date }}">
@@ -573,15 +571,12 @@
               <dt>{{ .Month }} {{ .Year }}</dt>
               <dd>{{ .Total.Abs }} ({{ perc .Total.Perc }} of total)</dd>
             </div>
-            {{- range $act.BySender }}
-            {{- $c := index $m.BySender .Name }}
-            {{- if gt $c.Abs 0 }}
+            {{- range $act.BySender }} {{- $c := index $m.BySender .Name }} {{- if gt $c.Abs 0 }}
             <div>
               <dt>{{ .Name }}</dt>
               <dd>{{ $c.Abs }} ({{ perc $c.Norm }} of month)</dd>
             </div>
-            {{- end }}
-            {{- end }}
+            {{- end }} {{- end }}
           </dl>
           {{- end }}
         </div>
@@ -599,27 +594,37 @@
                 <details>
                   <summary>
                     {{- end }}
-                    {{ if .Share.Link }}<a class="share" href="{{ .Share.Link }}">{{ else }}<p>{{ end }}
-                      {{- if .Share.OriginalContentOwner }}Post by {{ .Share.OriginalContentOwner }}{{ else }}Link{{ end }}
-                    {{- if .Share.Link }}</a>{{ else }}</p>{{ end }}
+                    <!-- prettier-ignore -->
+                    <p>
+                      {{ if .Share.Link }}
+                      <a class="share" href="{{ .Share.Link }}{{ if .Share.IsStory }}&msg={{ .Timestamp }}{{ end }}">
+                      {{ end }}
+                      {{- if .Share.IsStory }}Reacted to your story
+                      {{- else if .Share.OriginalContentOwner }}Post by {{ .Share.OriginalContentOwner }}
+                      {{- else if .Content }}{{ .Content }}
+                      {{- else }}Link
+                      {{- end }}
+                      {{- if .Share.Link }}</a>{{ end }}
+                      {{- if and .Content (or .Share.IsStory .Share.OriginalContentOwner) }}: {{ .Content }}{{ end }}
+                    </p>
                     {{- if .Share.ShareText }}
                   </summary>
                   {{ .Share.ShareText }}
                 </details>
                 {{ end }} {{ else if .Audios }} {{- range .Audios }}
-                <audio controls src="/{{ .Src }}"></audio>
+                <audio controls src="/conversation/{{ $.ID }}/{{ .Src }}"></audio>
                 {{ end }} {{ else if .Photos }} {{- range .Photos }}
                 <label class="photo">
                   <input type="checkbox" />
-                  <img src="/{{ .Src }}" alt="" />
+                  <img src="/conversation/{{ $.ID }}/{{ .Src }}" alt="" />
                 </label>
                 {{ end }} {{ else if .Videos }} {{- range .Videos }}
-                <video controls src="/{{ .Src }}"></video>
+                <video controls src="/conversation/{{ $.ID }}/{{ .Src }}"></video>
                 {{ end }} {{- else if .Content }}
                 <p>{{ .Content }}</p>
                 {{- else }}
                 <p class="one-time">Sent one-time message.</p>
-                {{- end }} 
+                {{- end }}
               </div>
               {{ if and (gt (len $.Participants) 2) (not .Me) }}<span class="sender">{{ .Sender }}</span>{{ end }}
             </li>
@@ -630,4 +635,31 @@
       </main>
     </div>
   </body>
+  <script>
+    const videos = document.querySelectorAll("video");
+    const audios = document.querySelectorAll("audio");
+
+    function playExclusive(some, others) {
+      some.forEach((s) => {
+        s.addEventListener("play", () => {
+          some.forEach((p) => {
+            if (s !== p) p.pause();
+          });
+          others.forEach((o) => o.pause());
+        });
+      });
+    }
+
+    playExclusive(videos, audios);
+    playExclusive(audios, videos);
+
+    audios.forEach((a) => {
+      a.addEventListener("ended", () => {
+        const next = a.closest("li").nextElementSibling?.querySelector("audio");
+        if (!next) return;
+        next.currentTime = 0;
+        next.play();
+      });
+    });
+  </script>
 </html>

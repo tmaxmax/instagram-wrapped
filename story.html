@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Story {{ .ID }}</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      *:not(dialog) {
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --font-serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
+        --font-sans: Optima, Candara, "Noto Sans", source-sans-pro, sans-serif;
+        font-weight: normal;
+      }
+
+      html {
+        height: 100%;
+      }
+
+      body {
+        height: 100%;
+        padding: 2em;
+        font-family: var(--font-serif);
+        font-weight: normal;
+        background-color: black;
+        color: whitesmoke;
+      }
+
+      header {
+        max-width: 36rem;
+        width: 100%;
+        margin: 0 auto;
+        min-height: 10%;
+      }
+
+      h1 {
+        font-family: var(--font-sans);
+      }
+
+      main {
+        display: grid;
+        height: 90%;
+        grid-auto-flow: column;
+        grid-template-rows: repeat(2, calc(50% - 0.5em));
+        min-height: 0;
+        padding-top: 1em;
+        gap: 1em;
+        overflow-x: auto;
+        padding-bottom: 0.5em;
+      }
+
+      .story {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        grid-row: span 2;
+        flex-direction: column;
+      }
+
+      .media {
+        aspect-ratio: 9 / 16;
+        height: 100%;
+      }
+
+      img,
+      video {
+        height: 100%;
+        object-fit: contain;
+      }
+
+      header ul {
+        display: flex;
+        flex-wrap: wrap;
+        column-gap: 1.4em;
+      }
+
+      header li {
+        list-style-type: none;
+      }
+
+      header li a,
+      header li a:visited {
+        color: gray;
+        text-decoration: none;
+      }
+
+      header li a:hover {
+        text-decoration: underline;
+        color: lightgray;
+      }
+
+      details[open] + details {
+        margin-top: 0.5em;
+      }
+
+      details summary {
+        cursor: auto;
+        user-select: none;
+      }
+
+      @media screen and (min-width: 30em) {
+        header {
+          padding-left: 5rem;
+        }
+
+        .story {
+          grid-row: span 1;
+        }
+
+        .story:is(:nth-child(1), :nth-child(2)) {
+          grid-row: span 2;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>
+        {{ if .ConversationID }}
+        <a href="/conversation/{{ .ConversationID }}{{ if .MessageID }}#msg-{{ .MessageID }}{{ end }}">↩️</a>
+        {{ end }} Story candidates
+      </h1>
+      {{- if gt .NumShares 0 }}
+      <details {{ if lt .NumShares 5 }}open{{ end }}>
+        <summary>You shared this in {{ .NumShares }} conversation{{ if ne .NumShares 1}}s{{ end }}.</summary>
+        <ul>
+          {{- range .Shares }}
+          <li><a href="/conversation/{{ .ConversationID }}#msg-{{ .Time.UnixMilli }}">{{ .ConversationTitle }}</a></li>
+          {{- end }}
+        </ul>
+      </details>
+      {{- end }} {{- if gt .NumAnswers 0 }}
+      <details {{ if lt .NumAnswers 5 }}open{{ end }}>
+        <summary>{{ .NumAnswers }} {{ if ne .NumAnswers 1 }}people{{ else }}person{{ end }} answered to this.</summary>
+        <ul>
+          {{- range .Answers }}
+          <li>
+            <a href="/conversation/{{ .ConversationID }}#msg-{{ .Time.UnixMilli }}">
+              {{ .UserName }}{{ if ne .ConversationTitle .UserName }} in {{ .ConversationTitle }}{{ end }}
+            </a>
+          </li>
+          {{- end }}
+        </ul>
+      </details>
+      {{- end }}
+    </header>
+    <main>
+      {{- range .MediaCandidates }}
+      <div class="story">
+        <div class="media">
+          {{ if .IsVideo }}
+          <video controls src="{{ .Src }}"></video>
+          {{ else }}
+          <img src="{{ .Src }}" alt="{{ .Title }}" />
+          {{ end }}
+        </div>
+      </div>
+      {{- end }}
+    </main>
+  </body>
+  <script>
+    const videos = document.querySelectorAll("video");
+    videos.forEach((v) => {
+      v.addEventListener("play", () => {
+        videos.forEach((w) => {
+          if (v !== w) w.pause();
+        });
+      });
+    });
+  </script>
+</html>
