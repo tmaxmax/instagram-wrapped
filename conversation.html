@@ -17,6 +17,7 @@
         --font-sans: Optima, Candara, "Noto Sans", source-sans-pro, sans-serif;
         --content-max-width: 36rem;
         --message-padding: 3em;
+        scroll-behavior: smooth;
       }
 
       *:not(dialog) {
@@ -502,7 +503,7 @@
   <body>
     <div class="content">
       <header>
-        <h1><a class="home" href="/#conv-{{ .ID }}">↩️</a> <a href="" class="current">{{ .Title }}</a></h1>
+        <h1><a class="home" href="/#conv-{{ .ID }}">↩️</a> <a href="#" class="current">{{ .Title }}</a></h1>
       </header>
       {{- if gt (len .Participants) 2 }}
       <section class="participants">
@@ -600,7 +601,11 @@
                     <!-- prettier-ignore -->
                     <p>
                       {{ if .Share.Link }}
-                      <a class="share" href="{{ .Share.Link }}{{ if .Share.IsStory }}&msg={{ .Timestamp }}{{ end }}">
+                      <a
+                        class="share"
+                        href="{{ .Share.Link }}{{ if .Share.IsStory }}&msg={{ .Timestamp }}{{ end }}"
+                        {{ if not .Share.IsStory }}target="_blank" rel="noopener noreferrer"{{ end }}
+                      >
                       {{ end }}
                       {{- if .Share.IsStory }}Reacted to your story
                       {{- else if .Share.OriginalContentOwner }}Post by {{ .Share.OriginalContentOwner }}
@@ -608,7 +613,7 @@
                       {{- else }}Link
                       {{- end }}
                       {{- if .Share.Link }}</a>{{ end }}
-                      {{- if and .Content (or .Share.IsStory .Share.OriginalContentOwner) }}: {{ .Content }}{{ end }}
+                      {{- if and .Content .Share.IsStory }}: {{ .Content }}{{ end }}
                     </p>
                     {{- if .Share.ShareText }}
                   </summary>

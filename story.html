@@ -181,5 +181,11 @@
         });
       });
     });
+
+    document.querySelector("main").addEventListener("wheel", (ev) => {
+      if (!ev.deltaY) return;
+      ev.currentTarget.scrollLeft += ev.deltaY + ev.deltaX;
+      ev.preventDefault();
+    });
   </script>
 </html>
