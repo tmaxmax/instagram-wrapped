@@ -78,10 +78,10 @@ type Resource struct {
 	URI string `json:"uri"`
 }
 
-func (r Resource) Src() string {
+func (r Resource) Src(conversationID string) string {
 	if uri, ok := strings.CutPrefix(r.URI, rootMessages+"/inbox/"); ok {
 		_, path, _ := strings.Cut(uri, "/")
-		return path
+		return fmt.Sprintf("/conversation/%s/%s", conversationID, path)
 	}
 
 	return r.URI

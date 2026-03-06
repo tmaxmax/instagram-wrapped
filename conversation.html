@@ -615,14 +615,14 @@
                   {{ .Share.ShareText }}
                 </details>
                 {{ end }} {{ else if .Audios }} {{- range .Audios }}
-                <audio controls src="/conversation/{{ $.ID }}/{{ .Src }}"></audio>
+                <audio controls src="{{ .Src $.ID }}"></audio>
                 {{ end }} {{ else if .Photos }} {{- range .Photos }}
                 <label class="photo">
                   <input type="checkbox" />
-                  <img src="/conversation/{{ $.ID }}/{{ .Src }}" alt="" />
+                  <img src="{{ .Src $.ID }}" alt="" />
                 </label>
                 {{ end }} {{ else if .Videos }} {{- range .Videos }}
-                <video controls src="/conversation/{{ $.ID }}/{{ .Src }}"></video>
+                <video controls src="{{ .Src $.ID }}"></video>
                 {{ end }} {{- else if .Content }}
                 <p>{{ .Content }}</p>
                 {{- else }}
