@@ -48,9 +48,13 @@
 
       main {
         display: grid;
+        margin: 0 auto;
+        width: max-content;
+        max-width: 100%;
         height: 90%;
         grid-auto-flow: column;
         grid-template-rows: repeat(2, calc(50% - 0.5em));
+        justify-content: start;
         min-height: 0;
         padding-top: 1em;
         gap: 1em;
@@ -74,6 +78,7 @@
       img,
       video {
         height: 100%;
+        width: 100%;
         object-fit: contain;
       }
 
@@ -129,17 +134,8 @@
         <a href="/conversation/{{ .ConversationID }}{{ if .MessageID }}#msg-{{ .MessageID }}{{ end }}">↩️</a>
         {{ end }} Story candidates
       </h1>
-      {{- if gt .NumShares 0 }}
-      <details {{ if lt .NumShares 5 }}open{{ end }}>
-        <summary>You shared this in {{ .NumShares }} conversation{{ if ne .NumShares 1}}s{{ end }}.</summary>
-        <ul>
-          {{- range .Shares }}
-          <li><a href="/conversation/{{ .ConversationID }}#msg-{{ .Time.UnixMilli }}">{{ .ConversationTitle }}</a></li>
-          {{- end }}
-        </ul>
-      </details>
-      {{- end }} {{- if gt .NumAnswers 0 }}
-      <details {{ if lt .NumAnswers 5 }}open{{ end }}>
+      {{- if gt .NumAnswers 0 }}
+      <details {{ if lt .NumAnswers 14 }}open{{ end }}>
         <summary>{{ .NumAnswers }} {{ if ne .NumAnswers 1 }}people{{ else }}person{{ end }} answered to this.</summary>
         <ul>
           {{- range .Answers }}
@@ -148,6 +144,15 @@
               {{ .UserName }}{{ if ne .ConversationTitle .UserName }} in {{ .ConversationTitle }}{{ end }}
             </a>
           </li>
+          {{- end }}
+        </ul>
+      </details>
+      {{- end }} {{- if gt .NumShares 0 }}
+      <details {{ if lt (len .Refs) 14 }}open{{ end }}>
+        <summary>You shared this in {{ .NumShares }} conversation{{ if ne .NumShares 1}}s{{ end }}.</summary>
+        <ul>
+          {{- range .Shares }}
+          <li><a href="/conversation/{{ .ConversationID }}#msg-{{ .Time.UnixMilli }}">{{ .ConversationTitle }}</a></li>
           {{- end }}
         </ul>
       </details>
