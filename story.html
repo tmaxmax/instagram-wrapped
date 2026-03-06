@@ -136,7 +136,9 @@
       </h1>
       {{- if gt .NumAnswers 0 }}
       <details {{ if lt .NumAnswers 14 }}open{{ end }}>
-        <summary>{{ .NumAnswers }} {{ if ne .NumAnswers 1 }}people{{ else }}person{{ end }} answered to this.</summary>
+        <summary>
+          {{ .NumAnswers }} {{ if ne .NumAnswers 1 }}people{{ else }}person{{ end }} replied to this story.
+        </summary>
         <ul>
           {{- range .Answers }}
           <li>
@@ -149,7 +151,7 @@
       </details>
       {{- end }} {{- if gt .NumShares 0 }}
       <details {{ if lt (len .Refs) 14 }}open{{ end }}>
-        <summary>You shared this in {{ .NumShares }} conversation{{ if ne .NumShares 1}}s{{ end }}.</summary>
+        <summary>You shared this story in {{ .NumShares }} conversation{{ if ne .NumShares 1}}s{{ end }}.</summary>
         <ul>
           {{- range .Shares }}
           <li><a href="/conversation/{{ .ConversationID }}#msg-{{ .Time.UnixMilli }}">{{ .ConversationTitle }}</a></li>
