@@ -156,6 +156,10 @@ func (s Stories) FindByID(storyID, refConversationID string) (Story, bool) {
 	}
 
 	if len(story.MediaCandidates) == 0 {
+		// No candidates means probably that this is a highlight story
+		// with neither answers nor shares at the time of creation
+		// and whose mention doesn't fall in the visibility window
+		// of any other story.
 		return Story{}, false
 	}
 
