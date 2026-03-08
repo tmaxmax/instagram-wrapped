@@ -186,7 +186,17 @@
 
     document.querySelector("main").addEventListener("wheel", (ev) => {
       const main = ev.currentTarget;
-      if (!ev.deltaY || main.scrollWidth <= main.clientWidth) return;
+      // This wheel event override is generally a bad idea
+      // but I don't want to remake the UI so we just patch
+      // away edge cases.
+      if (
+        !ev.deltaY ||
+        main.scrollWidth <= main.clientWidth || // no scroll needed
+        ev.ctrlKey || // pinch to zoom
+        ev.metaKey ||
+        window.visualViewport.scale > 1 // zoomed in
+      )
+        return;
       ev.currentTarget.scrollLeft += ev.deltaY + ev.deltaX;
       ev.preventDefault();
     });
