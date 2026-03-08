@@ -185,7 +185,8 @@
     });
 
     document.querySelector("main").addEventListener("wheel", (ev) => {
-      if (!ev.deltaY) return;
+      const main = ev.currentTarget;
+      if (!ev.deltaY || main.scrollWidth <= main.clientWidth) return;
       ev.currentTarget.scrollLeft += ev.deltaY + ev.deltaX;
       ev.preventDefault();
     });

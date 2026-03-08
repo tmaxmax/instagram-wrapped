@@ -158,7 +158,6 @@ func decodeConversation(root, conversationID, selfID string, selfName String, lo
 			if userID, storyID, ok := parseStoryURL(m.Share.Link); ok {
 				if userID == selfID {
 					m.Share.Link = fmt.Sprintf("/story/%s?conv=%s", storyID, conversationID)
-					m.Share.OriginalContentOwner = selfName
 				} else {
 					content := String("Replied to story")
 					if m.Content != "" {

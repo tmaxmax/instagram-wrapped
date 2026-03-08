@@ -52,9 +52,32 @@ type Story struct {
 	Refs            []StoryRef
 }
 
+func (s Story) unique() iter.Seq[StoryRef] {
+	return func(yield func(StoryRef) bool) {
+		type key struct {
+			conversationID string
+			name, title    String
+		}
+		seen := map[key]struct{}{}
+
+		for _, ref := range s.Refs {
+			k := key{conversationID: ref.ConversationID, name: ref.UserName, title: ref.ConversationTitle}
+			if _, ok := seen[k]; ok {
+				continue
+			}
+
+			seen[k] = struct{}{}
+
+			if !yield(ref) {
+				return
+			}
+		}
+	}
+}
+
 func (s Story) Shares() iter.Seq[StoryRef] {
 	return func(yield func(StoryRef) bool) {
-		for _, ref := range s.Refs {
+		for ref := range s.unique() {
 			if ref.UserName == "" && !yield(ref) {
 				return
 			}
@@ -64,7 +87,7 @@ func (s Story) Shares() iter.Seq[StoryRef] {
 
 func (s Story) Answers() iter.Seq[StoryRef] {
 	return func(yield func(StoryRef) bool) {
-		for _, ref := range s.Refs {
+		for ref := range s.unique() {
 			if ref.UserName != "" && !yield(ref) {
 				return
 			}
@@ -82,7 +105,12 @@ func (s Story) NumShares() int {
 }
 
 func (s Story) NumAnswers() int {
-	return len(s.Refs) - s.NumShares()
+	count := 0
+	for range s.Answers() {
+		count++
+	}
+
+	return count
 }
 
 type Stories struct {

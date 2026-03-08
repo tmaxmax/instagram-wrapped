@@ -607,7 +607,7 @@
                         {{ if not .Share.IsStory }}target="_blank" rel="noopener noreferrer"{{ end }}
                       >
                       {{ end }}
-                      {{- if .Share.IsStory }}Reacted to your story
+                      {{- if .Share.IsStory }}{{ if .Me }}Shared your story{{ else }}Replied to your story{{ end }}
                       {{- else if .Share.OriginalContentOwner }}Post by {{ .Share.OriginalContentOwner }}
                       {{- else if .Content }}{{ .Content }}
                       {{- else }}Link
